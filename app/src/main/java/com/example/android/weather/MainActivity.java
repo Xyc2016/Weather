@@ -3,13 +3,19 @@ package com.example.android.weather;
 import android.app.ActionBar;
 import android.app.Activity;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
+import android.text.InputType;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.afollestad.materialdialogs.MaterialDialog;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -31,6 +37,7 @@ public class MainActivity extends AppCompatActivity {
     TextView location,temperature_now,text;
     ListView listView;
     Activity activity;
+    String theLocation;
     SwipeRefreshLayout refreshLayout;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,6 +49,8 @@ public class MainActivity extends AppCompatActivity {
         temperature_now = (TextView)findViewById(R.id.temperature_now);
         text = (TextView)findViewById(R.id.text);
         listView = (ListView)findViewById(R.id.list);
+        theLocation= this.getPreferences(Context.MODE_PRIVATE).
+                getString("theLocation","yantai");
         refreshLayout = (SwipeRefreshLayout)findViewById(R.id.Refresh_layout);
         refreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
@@ -52,10 +61,10 @@ public class MainActivity extends AppCompatActivity {
         });
 
 
+
+
         refreshToday();
         refreshNextDays();
-
-
 
 
     }
@@ -119,10 +128,13 @@ public class MainActivity extends AppCompatActivity {
     }
     private void refreshToday(){
         OkHttpClient client = new OkHttpClient();
+        refreshLayout.setRefreshing(true);
         Request requestToday = new Request.Builder()
                 .url("https://api.thinkpage.cn/v3/weather/now.json?key=" +
                         API_KEY +
-                        "&location=yantai&language=zh-Hans&unit=c")
+                        "&location=" +
+                        theLocation +
+                        "&language=zh-Hans&unit=c")
                 .build();
         Call callToday = client.newCall(requestToday);
         callToday.enqueue(new Callback() {
@@ -133,7 +145,6 @@ public class MainActivity extends AppCompatActivity {
                         Toast.LENGTH_SHORT)
                         .show();
             }
-
             @Override
             public void onResponse(Call call, final Response response) throws IOException {
                 final String s = response.body().string();
@@ -146,7 +157,6 @@ public class MainActivity extends AppCompatActivity {
                         temperature_now.setText(" "+todayWeather.temperature+"° ");
                         text.setText(todayWeather.text);
                         refreshLayout.setRefreshing(false);
-
                     }
                 });
             }
@@ -158,11 +168,14 @@ public class MainActivity extends AppCompatActivity {
     private void refreshNextDays(){
 
         OkHttpClient client = new OkHttpClient();
-
+        String theLocation = this.getPreferences(Context.MODE_PRIVATE).
+                getString("theLocation","yantai");
         Request requestNext = new Request.Builder()
                 .url("https://api.thinkpage.cn/v3/weather/daily.json?key=" +
                         API_KEY +
-                        "&location=yantai&language=zh-Hans&unit=c&start=0&days=5")
+                        "&location=" +
+                        theLocation +
+                        "&language=zh-Hans&unit=c&start=0&days=5")
                 .build();
 
         Call callNext = client.newCall(requestNext);
@@ -192,5 +205,49 @@ public class MainActivity extends AppCompatActivity {
                 });
             }
         });
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Toast.makeText(getApplicationContext(),
+                "onResume",
+                Toast.LENGTH_SHORT)
+                .show();
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu,menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()){
+            case R.id.location:
+                new MaterialDialog.Builder(this)
+                        .title("Location")
+                        .content("Input the location.")
+                        .input(null, theLocation, new MaterialDialog.InputCallback() {
+                            @Override
+                            public void onInput(MaterialDialog dialog, CharSequence input) {
+                                // Do something
+                                Toast.makeText(getApplicationContext(),
+                                        input,
+                                        Toast.LENGTH_SHORT)
+                                        .show();
+                                activity.getPreferences(Context.MODE_PRIVATE)
+                                        .edit()
+                                        .putString("theLocation",""+input)
+                                        .commit();
+                                theLocation = ""+input;
+                                refreshToday();
+                                refreshNextDays();
+                            }
+                        }).show();
+        }
+
+        return true;
     }
 }
