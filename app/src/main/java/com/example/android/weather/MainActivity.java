@@ -3,6 +3,7 @@ package com.example.android.weather;
 import android.app.ActionBar;
 import android.app.Activity;
 import android.content.Context;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
@@ -29,78 +30,31 @@ public class MainActivity extends AppCompatActivity {
 
     TextView location,temperature_now,text;
     ListView listView;
+    Activity activity;
+    SwipeRefreshLayout refreshLayout;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        final Activity activity= this;
-        OkHttpClient client = new OkHttpClient();
+        activity = this;
 
         location = (TextView)findViewById(R.id.location);
         temperature_now = (TextView)findViewById(R.id.temperature_now);
         text = (TextView)findViewById(R.id.text);
         listView = (ListView)findViewById(R.id.list);
-        Request requestToday = new Request.Builder()
-                .url("https://api.thinkpage.cn/v3/weather/now.json?key=" +
-                        API_KEY +
-                        "&location=yantai&language=zh-Hans&unit=c")
-                .build();
-        Request requestNext = new Request.Builder()
-                .url("https://api.thinkpage.cn/v3/weather/daily.json?key=" +
-                        API_KEY +
-                        "&location=yantai&language=zh-Hans&unit=c&start=0&days=5")
-                .build();
-        Call callToday = client.newCall(requestToday);
-        Call callNext = client.newCall(requestNext);
-        callNext.enqueue(new Callback() {
+        refreshLayout = (SwipeRefreshLayout)findViewById(R.id.Refresh_layout);
+        refreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
-            public void onFailure(Call call, IOException e) {
-                Toast.makeText(getApplicationContext(),
-                        e.getMessage(),
-                        Toast.LENGTH_SHORT)
-                        .show();
-            }
-
-            @Override
-            public void onResponse(Call call, final Response response) throws IOException {
-                final String s = response.body().string();
-                final ArrayList<DailyWeather> weathers = parseDays(s);
-                final WeatherAdapter adapter = new WeatherAdapter(activity,weathers);
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        listView.setAdapter(adapter);
-
-                    }
-                });
+            public void onRefresh() {
+                refreshToday();
+                refreshNextDays();
             }
         });
-        callToday.enqueue(new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-                Toast.makeText(getApplicationContext(),
-                        e.getMessage(),
-                        Toast.LENGTH_SHORT)
-                        .show();
-            }
 
-            @Override
-            public void onResponse(Call call, final Response response) throws IOException {
-                final String s = response.body().string();
-                final TodayWeather todayWeather =parseToday(s);
 
-                runOnUiThread(new Runnable() {
-                    //TODO set the contents;
-                    @Override
-                    public void run() {
-                        location.setText(todayWeather.name);
-                        temperature_now.setText(" "+todayWeather.temperature+"° ");
-                        text.setText(todayWeather.text);
+        refreshToday();
+        refreshNextDays();
 
-                    }
-                });
-            }
-        });
 
 
 
@@ -162,5 +116,81 @@ public class MainActivity extends AppCompatActivity {
 
         return weathers;
 
+    }
+    private void refreshToday(){
+        OkHttpClient client = new OkHttpClient();
+        Request requestToday = new Request.Builder()
+                .url("https://api.thinkpage.cn/v3/weather/now.json?key=" +
+                        API_KEY +
+                        "&location=yantai&language=zh-Hans&unit=c")
+                .build();
+        Call callToday = client.newCall(requestToday);
+        callToday.enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                Toast.makeText(getApplicationContext(),
+                        e.getMessage(),
+                        Toast.LENGTH_SHORT)
+                        .show();
+            }
+
+            @Override
+            public void onResponse(Call call, final Response response) throws IOException {
+                final String s = response.body().string();
+                final TodayWeather todayWeather =parseToday(s);
+
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        location.setText(todayWeather.name);
+                        temperature_now.setText(" "+todayWeather.temperature+"° ");
+                        text.setText(todayWeather.text);
+                        refreshLayout.setRefreshing(false);
+
+                    }
+                });
+            }
+        });
+
+
+
+    }
+    private void refreshNextDays(){
+
+        OkHttpClient client = new OkHttpClient();
+
+        Request requestNext = new Request.Builder()
+                .url("https://api.thinkpage.cn/v3/weather/daily.json?key=" +
+                        API_KEY +
+                        "&location=yantai&language=zh-Hans&unit=c&start=0&days=5")
+                .build();
+
+        Call callNext = client.newCall(requestNext);
+        callNext.enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                Toast.makeText(getApplicationContext(),
+                        e.getMessage(),
+                        Toast.LENGTH_SHORT)
+                        .show();
+            }
+
+            @Override
+            public void onResponse(Call call, final Response response) throws IOException {
+                final String s = response.body().string();
+                final ArrayList<DailyWeather> weathers = parseDays(s);
+                final WeatherAdapter adapter = new WeatherAdapter(activity,weathers);
+
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        listView.setAdapter(adapter);
+                        refreshLayout.setRefreshing(false);
+
+
+                    }
+                });
+            }
+        });
     }
 }
