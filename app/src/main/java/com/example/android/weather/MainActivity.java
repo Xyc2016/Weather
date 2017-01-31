@@ -67,8 +67,7 @@ public class MainActivity extends AppCompatActivity {
         toolbar.setTitle("");
         setSupportActionBar(toolbar);
         theLocation= this.getPreferences(Context.MODE_PRIVATE).
-                getString("theLocation","yantai");
-
+                getString("theLocation","Beijing");
         toolbar.setTitle(theLocation);
         db = openOrCreateDatabase("weathers",MODE_PRIVATE,null);
         initDataBase();
@@ -87,11 +86,8 @@ public class MainActivity extends AppCompatActivity {
                 refreshNextDays();
             }
         });
-
         refreshToday();
         refreshNextDays();
-
-
     }
     private TodayWeather parseToday(String jsonString){
         TodayWeather todayWeather = new TodayWeather();
@@ -139,7 +135,6 @@ public class MainActivity extends AppCompatActivity {
                 weather.wind_scale  =day.getString("wind_scale");
                 weather.wind_speed = day.getString("wind_speed");
                 weather.week_day = getWeekDayFormInt(Calendar.getInstance().get(Calendar.DAY_OF_WEEK)+i);
-                Log.e("??????????",""+Calendar.DAY_OF_WEEK);
                 weathers.add(weather);
             }
 
@@ -176,7 +171,13 @@ public class MainActivity extends AppCompatActivity {
             public void onResponse(Call call, final Response response) throws IOException {
                 final String s = response.body().string();
                 final TodayWeather todayWeather =parseToday(s);
+                activity.getPreferences(MODE_PRIVATE).edit().putString("theLocation",todayWeather.name).commit();
 
+                db.execSQL("update weathers set temperature_now ='" +
+                        todayWeather.temperature +
+                        "',theText='" +
+                        todayWeather.text +
+                        "' where _id=0");
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
@@ -188,9 +189,6 @@ public class MainActivity extends AppCompatActivity {
                 });
             }
         });
-
-
-
     }
     private void refreshNextDays(){
 
@@ -217,6 +215,20 @@ public class MainActivity extends AppCompatActivity {
             public void onResponse(Call call, final Response response) throws IOException {
                 final String s = response.body().string();
                 final ArrayList<DailyWeather> weathers = parseDays(s);
+                for (int i = 0; i < 3; i++) {
+                    DailyWeather  weather = weathers.get(i);
+                    db.execSQL("update weathers set high='" +
+                            weather.high +
+                            "',low='" +
+                            weather.low +
+                            "',theText='" +
+                            weather.text_day +
+                            "',weekDay='" +
+                            weather.week_day +
+                            "' where _id=" +
+                            (i+1) +
+                            "");
+                }
                 final WeatherAdapter adapter = new WeatherAdapter(activity,weathers);
 
                 runOnUiThread(new Runnable() {
@@ -253,15 +265,6 @@ public class MainActivity extends AppCompatActivity {
                         .input(null, theLocation, new MaterialDialog.InputCallback() {
                             @Override
                             public void onInput(MaterialDialog dialog, CharSequence input) {
-                                // Do something
-                                Toast.makeText(getApplicationContext(),
-                                        input,
-                                        Toast.LENGTH_SHORT)
-                                        .show();
-                                activity.getPreferences(Context.MODE_PRIVATE)
-                                        .edit()
-                                        .putString("theLocation",""+input)
-                                        .commit();
                                 theLocation = ""+input;
                                 refreshToday();
                                 refreshNextDays();
@@ -276,7 +279,9 @@ public class MainActivity extends AppCompatActivity {
         if (db.rawQuery("select * from sqlite_master",null).getCount()==1){
             db.execSQL("CREATE TABLE weathers(_id INTEGER,temperature_now TEXT,theText TEXT,high TEXT,low TEXT ,weekDay TEXT);");
             for (int i = 0; i < 4; i++) {
-                db.execSQL("INSERT INTO weathers VALUES(0,'0',' ','0','0','');");
+                db.execSQL("INSERT INTO weathers VALUES(" +
+                        i +
+                        ",'0','Unkown','0','0','Weekday');");
 
             }
 
@@ -310,4 +315,5 @@ public class MainActivity extends AppCompatActivity {
 
 
     }
+
 }
