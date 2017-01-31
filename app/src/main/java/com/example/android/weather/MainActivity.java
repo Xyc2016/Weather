@@ -199,8 +199,6 @@ public class MainActivity extends AppCompatActivity {
                     public void run() {
                         listView.setAdapter(adapter);
                         refreshLayout.setRefreshing(false);
-
-
                     }
                 });
             }
