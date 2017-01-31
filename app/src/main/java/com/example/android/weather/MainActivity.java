@@ -24,6 +24,7 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Calendar;
 
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -142,7 +143,7 @@ public class MainActivity extends AppCompatActivity {
                         API_KEY +
                         "&location=" +
                         theLocation +
-                        "&language=zh-Hans&unit=c")
+                        "&language=en&unit=c")
                 .build();
         Call callToday = client.newCall(requestToday);
         callToday.enqueue(new Callback() {
@@ -176,14 +177,12 @@ public class MainActivity extends AppCompatActivity {
     private void refreshNextDays(){
 
         OkHttpClient client = new OkHttpClient();
-        String theLocation = this.getPreferences(Context.MODE_PRIVATE).
-                getString("theLocation","yantai");
         Request requestNext = new Request.Builder()
                 .url("https://api.thinkpage.cn/v3/weather/daily.json?key=" +
                         API_KEY +
                         "&location=" +
                         theLocation +
-                        "&language=zh-Hans&unit=c&start=0&days=5")
+                        "&language=en&unit=c&start=0&days=5")
                 .build();
 
         Call callNext = client.newCall(requestNext);
@@ -216,10 +215,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        Toast.makeText(getApplicationContext(),
-                "onResume",
-                Toast.LENGTH_SHORT)
-                .show();
+        refreshNextDays();
+        refreshToday();
     }
 
     @Override
