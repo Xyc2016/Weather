@@ -8,9 +8,11 @@ import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
+import android.support.v7.widget.Toolbar;
 import android.text.InputType;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -30,25 +32,31 @@ import okhttp3.Request;
 import okhttp3.Response;
 
 import static android.R.attr.name;
+import static com.example.android.weather.R.id.location;
 
 public class MainActivity extends AppCompatActivity {
     final String API_KEY = "3p8mqv0gegi6yff3";
 
-    TextView location,temperature_now,text;
+    TextView temperature_now,text;
     ListView listView;
     Activity activity;
     String theLocation;
     SwipeRefreshLayout refreshLayout;
+    Toolbar toolbar;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         activity = this;
 
-        location = (TextView)findViewById(R.id.location);
+        getWindow().getDecorView().setSystemUiVisibility(
+                View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
         temperature_now = (TextView)findViewById(R.id.temperature_now);
         text = (TextView)findViewById(R.id.text);
         listView = (ListView)findViewById(R.id.list);
+        toolbar = (Toolbar)findViewById(R.id.theToolBar);
+        setSupportActionBar(toolbar);
         theLocation= this.getPreferences(Context.MODE_PRIVATE).
                 getString("theLocation","yantai");
         refreshLayout = (SwipeRefreshLayout)findViewById(R.id.Refresh_layout);
@@ -153,10 +161,10 @@ public class MainActivity extends AppCompatActivity {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        location.setText(todayWeather.name);
                         temperature_now.setText(" "+todayWeather.temperature+"° ");
                         text.setText(todayWeather.text);
                         refreshLayout.setRefreshing(false);
+                        toolbar.setTitle(todayWeather.name);
                     }
                 });
             }
@@ -223,7 +231,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()){
-            case R.id.location:
+            case location:
                 new MaterialDialog.Builder(this)
                         .title("Location")
                         .content("Input the location.")
