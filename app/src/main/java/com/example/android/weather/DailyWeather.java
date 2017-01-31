@@ -20,5 +20,6 @@ public class DailyWeather {
     String wind_speed="";
     String wind_scale="";
     String last_update="";
+    String week_day="";
 
 }

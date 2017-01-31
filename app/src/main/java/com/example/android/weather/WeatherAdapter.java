@@ -36,23 +36,11 @@ public class WeatherAdapter extends ArrayAdapter<DailyWeather> {
         TextView high_low = (TextView)itemView.findViewById(R.id.high_low);
         TextView text_day = (TextView)itemView.findViewById(R.id.text_day);
         TextView day_of_week = (TextView)itemView.findViewById(R.id.day_of_week);
-        int weekDay = Calendar.getInstance().get(Calendar.DAY_OF_WEEK);
-        day_of_week.setText(getWeekDayFormInt(weekDay+position));
+        day_of_week.setText(weather.week_day);
         high_low.setText(weather.high+"°/"+weather.low+"° ");
         text_day.setText(weather.text_day);
 
         return itemView;
     }
-    private String getWeekDayFormInt(int weekDay){
-        switch (weekDay%7){
-            case 1: return "Monday";
-            case 2: return "Tuesday";
-            case 3: return "Wednesday";
-            case 4: return "Thursday";
-            case 5: return "Friday";
-            case 6: return "Saturday";
-            case 7: return "Sunday";
-        }
-        return "";
-    }
+
 }

@@ -4,12 +4,15 @@ import android.app.ActionBar;
 import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
 import android.support.v7.widget.Toolbar;
 import android.text.InputType;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -33,6 +36,7 @@ import okhttp3.Request;
 import okhttp3.Response;
 
 import static android.R.attr.name;
+import static android.icu.lang.UCharacter.GraphemeClusterBreak.T;
 import static com.example.android.weather.R.id.location;
 
 public class MainActivity extends AppCompatActivity {
@@ -44,6 +48,8 @@ public class MainActivity extends AppCompatActivity {
     String theLocation;
     SwipeRefreshLayout refreshLayout;
     Toolbar toolbar;
+    SQLiteDatabase db;
+    Cursor cursor;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -53,13 +59,26 @@ public class MainActivity extends AppCompatActivity {
         getWindow().getDecorView().setSystemUiVisibility(
                 View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                         | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
+
         temperature_now = (TextView)findViewById(R.id.temperature_now);
         text = (TextView)findViewById(R.id.text);
         listView = (ListView)findViewById(R.id.list);
         toolbar = (Toolbar)findViewById(R.id.theToolBar);
+        toolbar.setTitle("");
         setSupportActionBar(toolbar);
         theLocation= this.getPreferences(Context.MODE_PRIVATE).
                 getString("theLocation","yantai");
+
+        toolbar.setTitle(theLocation);
+        db = openOrCreateDatabase("weathers",MODE_PRIVATE,null);
+        initDataBase();
+
+        cursor = db.rawQuery("select * from weathers;",null);
+        cursor.moveToFirst();
+        temperature_now.setText(" "+cursor.getString(1)+"° ");
+        text.setText(cursor.getString(2));
+
+        listView.setAdapter(new WeatherAdapter(activity,getNextFromDataBase()));
         refreshLayout = (SwipeRefreshLayout)findViewById(R.id.Refresh_layout);
         refreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
@@ -68,9 +87,6 @@ public class MainActivity extends AppCompatActivity {
                 refreshNextDays();
             }
         });
-
-
-
 
         refreshToday();
         refreshNextDays();
@@ -122,6 +138,8 @@ public class MainActivity extends AppCompatActivity {
                 weather.wind_direction_degree = day.getString("wind_direction_degree");
                 weather.wind_scale  =day.getString("wind_scale");
                 weather.wind_speed = day.getString("wind_speed");
+                weather.week_day = getWeekDayFormInt(Calendar.getInstance().get(Calendar.DAY_OF_WEEK)+i);
+                Log.e("??????????",""+Calendar.DAY_OF_WEEK);
                 weathers.add(weather);
             }
 
@@ -252,5 +270,44 @@ public class MainActivity extends AppCompatActivity {
         }
 
         return true;
+    }
+
+    private void initDataBase(){
+        if (db.rawQuery("select * from sqlite_master",null).getCount()==1){
+            db.execSQL("CREATE TABLE weathers(_id INTEGER,temperature_now TEXT,theText TEXT,high TEXT,low TEXT ,weekDay TEXT);");
+            for (int i = 0; i < 4; i++) {
+                db.execSQL("INSERT INTO weathers VALUES(0,'0',' ','0','0','');");
+
+            }
+
+        }
+    }
+    private String getWeekDayFormInt(int weekDay){
+        switch (weekDay%7){
+            case 1: return "Monday";
+            case 2: return "Tuesday";
+            case 3: return "Wednesday";
+            case 4: return "Thursday";
+            case 5: return "Friday";
+            case 6: return "Saturday";
+            case 0: return "Sunday";
+        }
+        return "";
+    }
+    private ArrayList<DailyWeather> getNextFromDataBase(){
+        ArrayList<DailyWeather> weathers = new ArrayList<>();
+        cursor.moveToFirst();
+        for (int i = 0; i < 3; i++) {
+            cursor.moveToNext();
+            DailyWeather weather = new DailyWeather();
+            weather.text_day = cursor.getString(2);
+            weather.high = cursor.getString(3);
+            weather.low = cursor.getString(4);
+            weather.week_day = cursor.getString(5);
+            weathers.add(weather);
+        }
+        return weathers;
+
+
     }
 }
